@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -14,6 +15,7 @@ const (
 	Epoch       = "scheduler-epoch"
 	TargetTopic = "scheduler-target-topic"
 	TargetKey   = "scheduler-target-key"
+	PreserveKey = "scheduler-preserve-key"
 )
 
 type Schedule struct {
@@ -39,6 +41,10 @@ func (s Schedule) Topic() string {
 
 func (s Schedule) TargetKey() []byte {
 	return s.getHeaderValue(TargetKey)
+}
+
+func (s Schedule) PreserveKey() bool {
+	return bytes.Equal([]byte("true"), s.getHeaderValue(PreserveKey))
 }
 
 func (s Schedule) ID() string {
