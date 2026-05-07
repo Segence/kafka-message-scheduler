@@ -3,7 +3,7 @@ LDFLAGS=-ldflags "-X main.version=${VERSION}"
 TMPDIR := $(shell mktemp -d)
 
 dev.up:
-	docker-compose -p dev up -d kafka
+	docker-compose -p dev up -d broker schema-registry kafka-ui
 
 dev.down:
 	docker-compose -p dev down -v
