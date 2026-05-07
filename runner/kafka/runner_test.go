@@ -22,6 +22,7 @@ var (
 	consumeMessages       = test.ConsumeMessages
 	assertMessagesInTopic = test.AssertMessagesinTopic
 	getBootstrapServers   = helper.GetDefaultBootstrapServers
+	testTopicNames        = []string{"schedules", "history", "target"}
 )
 
 type tuple struct {
@@ -54,7 +55,7 @@ func checkMessagesInTopic(t *testing.T, topic string, expected []tuple) {
 
 // Check the scheduler is working as expected, tombstone, history and target message should be published
 func TestDefaultKafkaRunner(t *testing.T) {
-	topics := createTopics(t, 3, []int{2, 1, 1}, "scheduler")
+	topics := createTopics(t, 3, []int{2, 1, 1}, testTopicNames)
 
 	someValue := []byte("some value")
 	targetKey := "target-key"
@@ -115,7 +116,7 @@ func TestDefaultKafkaRunner(t *testing.T) {
 // We should get in the target topic the exact number of schedules planned.
 // Each scheduler should recover and not produce less or more messages than planned schedules originally.
 func TestDefaultKafkaRunner_resilience(t *testing.T) {
-	topics := createTopics(t, 3, []int{3, 1, 1}, "scheduler")
+	topics := createTopics(t, 3, []int{3, 1, 1}, testTopicNames)
 
 	// scheduler topic with 3 partitions
 	schedulesTopic := topics[0]
@@ -208,7 +209,7 @@ loop:
 
 // Make sure scheduler configured with a yaml file runs correctly
 func TestDefaultKafkaRunner_yaml_configuration(t *testing.T) {
-	topics := createTopics(t, 3, []int{2, 1, 1}, "scheduler")
+	topics := createTopics(t, 3, []int{2, 1, 1}, testTopicNames)
 
 	someValue := []byte("some value")
 	targetKey := "target-key"
@@ -261,7 +262,7 @@ func TestDefaultKafkaRunner_yaml_configuration(t *testing.T) {
 // Issue #30: https://github.com/etf1/kafka-message-scheduler/issues/30
 // make sure invalid schedules are deleted from the topic
 func TestDefaultKafkaRunner_issue30(t *testing.T) {
-	topics := createTopics(t, 3, []int{2, 1, 1}, "scheduler")
+	topics := createTopics(t, 3, []int{2, 1, 1}, testTopicNames)
 
 	someValue := []byte("some value")
 	targetKey := "target-key"
@@ -357,7 +358,7 @@ func TestDefaultKafkaRunner_issue31(t *testing.T) {
 
 	for i, c := range cases {
 		t.Run(fmt.Sprintf("case #%v", i), func(t *testing.T) {
-			topics := createTopics(t, 3, []int{2, 1, 1}, "scheduler")
+			topics := createTopics(t, 3, []int{2, 1, 1}, testTopicNames)
 
 			// scheduler topic
 			schedulesTopic := topics[0]

@@ -28,7 +28,14 @@ const (
 )
 
 func NewKafkaStore(t *testing.T, nbTopic int, nbPartitions []int) (store *kafka_store.Store, topics []string) {
-	topics = CreateTopics(t, nbTopic, nbPartitions, "scheduler")
+
+	var prefixes []string
+
+	for i := range nbTopic {
+		prefixes[i] = "scheduler"
+	}
+
+	topics = CreateTopics(t, nbTopic, nbPartitions, prefixes)
 	return NewKafkaStoreFromTopics(t, topics), topics
 }
 
@@ -43,7 +50,7 @@ func NewKafkaStoreFromTopics(t *testing.T, topics []string) *kafka_store.Store {
 }
 
 // Creates topics based on the array of nbPartitions param
-func CreateTopics(t *testing.T, nbTopic int, nbPartitions []int, prefix string) []string {
+func CreateTopics(t *testing.T, nbTopic int, nbPartitions []int, prefix []string) []string {
 	topics := make([]string, nbTopic)
 
 	adm, err := confluent.NewAdminClient(&confluent.ConfigMap{
@@ -60,7 +67,7 @@ func CreateTopics(t *testing.T, nbTopic int, nbPartitions []int, prefix string) 
 	replicationFactor := 1
 	specs := make([]confluent.TopicSpecification, nbTopic)
 	for i := 0; i < len(specs); i++ {
-		topics[i] = RandomTopicName(prefix)
+		topics[i] = RandomTopicName(prefix[i])
 		specs[i] = confluent.TopicSpecification{
 			Topic:             topics[i],
 			NumPartitions:     nbPartitions[i],
