@@ -6,7 +6,7 @@ import (
 	confluent "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
 
-func TestSchedule_PreserveKey(t *testing.T) {
+func TestSchedule_UseConfluentSchemaRegistry(t *testing.T) {
 	type fields struct {
 		Message *confluent.Message
 	}
@@ -16,7 +16,7 @@ func TestSchedule_PreserveKey(t *testing.T) {
 		want   bool
 	}{
 		{
-			name: "PreserveKey is not defined",
+			name: "UseConfluentSchemaRegistry is not defined",
 			fields: fields{
 				Message: &confluent.Message{
 					Headers: []confluent.Header{},
@@ -25,7 +25,7 @@ func TestSchedule_PreserveKey(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "PreserveKey is defined and set to anything other than true",
+			name: "UseConfluentSchemaRegistry is defined and set to anything other than true",
 			fields: fields{
 				Message: &confluent.Message{
 					Headers: []confluent.Header{
@@ -39,12 +39,12 @@ func TestSchedule_PreserveKey(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "PreserveKey is defined and set to true",
+			name: "UseConfluentSchemaRegistry is defined and set to true",
 			fields: fields{
 				Message: &confluent.Message{
 					Headers: []confluent.Header{
 						{
-							Key:   PreserveKey,
+							Key:   UseConfluentSchemaRegistry,
 							Value: []byte("true"),
 						},
 					},
@@ -58,8 +58,8 @@ func TestSchedule_PreserveKey(t *testing.T) {
 			s := Schedule{
 				Message: tt.fields.Message,
 			}
-			if got := s.PreserveKey(); got != tt.want {
-				t.Errorf("PreserveKey() = %v, want %v", got, tt.want)
+			if got := s.UseConfluentSchemaRegistry(); got != tt.want {
+				t.Errorf("UseConfluentSchemaRegistry() = %v, want %v", got, tt.want)
 			}
 		})
 	}
