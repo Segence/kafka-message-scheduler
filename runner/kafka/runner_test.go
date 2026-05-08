@@ -22,7 +22,7 @@ var (
 	produceMessages       = test.ProduceMessages
 	createTopics          = test.CreateTopics
 	consumeMessages       = test.ConsumeMessages
-	assertMessagesInTopic = test.AssertMessagesinTopic
+	assertMessagesInTopic = test.AssertMessagesInTopic
 	getBootstrapServers   = helper.GetDefaultBootstrapServers
 	isRunningInDocker     = helper.IsRunningInDocker()
 	testTopicNames        = []string{"schedules", "history", "target"}
@@ -145,7 +145,7 @@ func TestDefaultKafkaRunnerWithSchemaRegistry(t *testing.T) {
 
 	schemaRegistryURL := "http://localhost:8081"
 
-	if helper.IsRunningInDocker() {
+	if isRunningInDocker {
 		schemaRegistryURL = "http://schema-registry:8081"
 	}
 
@@ -173,26 +173,35 @@ func TestDefaultKafkaRunnerWithSchemaRegistry(t *testing.T) {
 	msgs := []*confluent.Message{msg1, msg2}
 
 	produceMessages(t, msgs)
-	//assertMessagesInTopic(t, schedulesTopic, msgs)
+	assertMessagesInTopic(t, schedulesTopic, msgs)
 
-	time.Sleep(300 * time.Second)
+	expectedMsg := []tuple{}
+	for _, msg := range msgs {
+		expectedMsg = append(expectedMsg, tuple{
+			Key:   msg.Key,
+			Value: msg.Value,
+		})
+	}
 
-	//expectedMsg := []tuple{{Key: []byte(targetKey), Value: someValue}, {Key: nil, Value: someValue}}
-	//
-	//t.Logf("check message in target topic")
-	//// check messages are in the target topic
-	//checkMessagesInTopic(t, targetTopic, expectedMsg)
-	//
-	//t.Logf("check message in history topic")
-	//// check messages are in the history topic
-	//checkMessagesInTopic(t, historyTopic, expectedMsg)
-	//
-	//expectedSchedules := []tuple{{Key: []byte(scheduleKey), Value: someValue}, {Key: []byte(scheduleKey + "2"), Value: someValue},
-	//	{Key: []byte(scheduleKey), Value: nil}, {Key: []byte(scheduleKey + "2"), Value: nil}}
-	//
-	//t.Logf("check message in schedules topic")
-	//// check message and tombstone message are in schedules topic
-	//checkMessagesInTopic(t, schedulesTopic, expectedSchedules)
+	t.Logf("check message in target topic")
+	// check messages are in the target topic
+	checkMessagesInTopic(t, targetTopic, expectedMsg)
+
+	t.Logf("check message in history topic")
+	// check messages are in the history topic
+	checkMessagesInTopic(t, historyTopic, expectedMsg)
+
+	tombstoneMessagesInSchedules := []tuple{}
+	for _, msg := range msgs {
+		tombstoneMessagesInSchedules = append(tombstoneMessagesInSchedules, tuple{
+			Key:   msg.Key,
+			Value: nil,
+		})
+	}
+
+	t.Logf("check message in schedules topic")
+	// check message and tombstone message are in schedules topic
+	checkMessagesInTopic(t, schedulesTopic, append(expectedMsg, tombstoneMessagesInSchedules...))
 }
 
 // Test the relience of the multi-instance scheduler,

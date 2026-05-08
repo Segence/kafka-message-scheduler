@@ -10,34 +10,13 @@ const magicByte byte = 0x0
 
 func SerializeUsingPayloadPrefix(id uint32, payload []byte) ([]byte, error) {
 
-	//ser, err := avro.NewGenericSerializer(*schemaRegistryClient, serdeType, avro.NewSerializerConfig())
-	//
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//dd := *schemaRegistryClient
-	//
-	//subjectSuffix := "key"
-	//if serdeType == serde.ValueSerde {
-	//	subjectSuffix = "value"
-	//}
-	//
-	//schemaID, err := dd.Register(fmt.Sprintf("%s-%s", topicName, subjectSuffix), *schema, false)
-	//
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//return ser.WriteBytes(schemaID, payload)
-
 	var buf bytes.Buffer
 	err := buf.WriteByte(magicByte)
 	if err != nil {
 		return nil, err
 	}
 	idBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(idBytes, uint32(id))
+	binary.BigEndian.PutUint32(idBytes, id)
 	_, err = buf.Write(idBytes)
 	if err != nil {
 		return nil, err

@@ -192,16 +192,10 @@ type HandlerOpaque struct {
 }
 
 func (k EventHandler) produceTargetMessage(msg kafka.Schedule) error {
-	headers := []confluent.Header{}
+	var headers []confluent.Header
 
 	if len(msg.Headers) != 0 {
 		headers = append(headers, msg.Headers...)
-	}
-
-	var originalKey []byte
-
-	if !msg.UseConfluentSchemaRegistry() {
-		originalKey = msg.Key
 	}
 
 	headers = append(
@@ -212,7 +206,7 @@ func (k EventHandler) produceTargetMessage(msg kafka.Schedule) error {
 		},
 		confluent.Header{
 			Key:   OriginalKey,
-			Value: originalKey,
+			Value: msg.Key,
 		},
 		confluent.Header{
 			Key:   OriginalTopic,

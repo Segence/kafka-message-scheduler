@@ -282,7 +282,7 @@ func AssertMessageEquals(t *testing.T, m1, m2 *confluent.Message) {
 }
 
 // Verifies if specified messages are in the topic
-func AssertMessagesinTopic(t *testing.T, topic string, msgs []*confluent.Message) {
+func AssertMessagesInTopic(t *testing.T, topic string, msgs []*confluent.Message) {
 	config := GetConsumerConfig("cg-test")
 	t.Logf("consumer config: topic=%v %+v", topic, config)
 
