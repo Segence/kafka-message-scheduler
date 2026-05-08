@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	confluent "github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -18,10 +17,9 @@ type File struct {
 	// might be common to both the consumer and the producer, and those are stored in the common
 	// configuration.
 
-	KafkaCommonConfiguration    confluent.ConfigMap `yaml:"kafka.common.configuration,omitempty"`
-	KafkaProducerConfiguration  confluent.ConfigMap `yaml:"kafka.producer.configuration,omitempty"`
-	KafkaConsumerConfiguration  confluent.ConfigMap `yaml:"kafka.consumer.configuration,omitempty"`
-	SchemaRegistryConfiguration confluent.ConfigMap `yaml:"kafka.schema-registry.configuration,omitempty"`
+	KafkaCommonConfiguration   confluent.ConfigMap `yaml:"kafka.common.configuration,omitempty"`
+	KafkaProducerConfiguration confluent.ConfigMap `yaml:"kafka.producer.configuration,omitempty"`
+	KafkaConsumerConfiguration confluent.ConfigMap `yaml:"kafka.consumer.configuration,omitempty"`
 }
 
 func (f *File) GenerateProducerConfiguration() confluent.ConfigMap {
@@ -44,43 +42,6 @@ func (f *File) GenerateConsumerConfiguration() confluent.ConfigMap {
 		result[k] = v
 	}
 	return result
-}
-
-func (f *File) GenerateSchemaRegistryConfiguration() (*schemaregistry.Config, error) {
-
-	if len(f.SchemaRegistryConfiguration) < 1 {
-		return nil, nil
-	}
-
-	result := make(confluent.ConfigMap, len(f.SchemaRegistryConfiguration))
-	for k, v := range f.SchemaRegistryConfiguration {
-		result[k] = v
-	}
-
-	if result["url"] == nil {
-		return nil, fmt.Errorf("schema registry configuration must contain url")
-	}
-
-	if result["authentication_type"] != nil {
-
-		switch result["authentication_type"] {
-		case "basic":
-			if result["basic_auth_user_info"] == nil {
-				return nil, fmt.Errorf("schema registry configuration with basic authentication must contain basic_auth_user_info")
-			}
-
-			return schemaregistry.NewConfigWithAuthentication(
-				result["url"].(string),
-				result["username"].(string),
-				result["password"].(string),
-			), nil
-		default:
-			return nil, fmt.Errorf("unsupported authentication type: %s", result["authentication_type"])
-		}
-
-	}
-
-	return schemaregistry.NewConfig(result["url"].(string)), nil
 }
 
 func ReadFile(filePath string) (File, error) {

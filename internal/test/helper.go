@@ -14,6 +14,8 @@ import (
 	"time"
 
 	confluent "github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
+	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde"
 	"github.com/etf1/kafka-message-scheduler/internal/helper"
 	"github.com/etf1/kafka-message-scheduler/schedule/kafka"
 	kafka_store "github.com/etf1/kafka-message-scheduler/store/kafka"
@@ -185,6 +187,43 @@ func FullMessage(topic string, key, value interface{}, epoch int64, targetTopic 
 		Headers:        headers,
 		Value:          toBytes(value),
 		Key:            toBytes(key),
+		Timestamp:      time.Now(),
+	}
+}
+
+// FullAvroMessage creates a Kafka message serialized in Avro format with more details with scheduler headers
+func FullAvroMessage(topic string, key, value interface{}, epoch int64, targetTopic string, schemaRegistryClient schemaregistry.Client) *confluent.Message {
+	headers := []confluent.Header{
+		{
+			Key:   kafka.Epoch,
+			Value: []byte(strconv.FormatInt(epoch, 10)),
+		},
+		{
+			Key:   kafka.TargetTopic,
+			Value: []byte(targetTopic),
+		},
+		{
+			Key:   kafka.UseConfluentSchemaRegistry,
+			Value: []byte("true"),
+		}}
+
+	keyBytes, err := SerializeAvro(key, schemaRegistryClient, topic, serde.KeySerde)
+
+	if err != nil {
+		panic(err)
+	}
+
+	valueBytes, err := SerializeAvro(value, schemaRegistryClient, topic, serde.ValueSerde)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return &confluent.Message{
+		TopicPartition: confluent.TopicPartition{Topic: &topic, Partition: confluent.PartitionAny},
+		Headers:        headers,
+		Key:            keyBytes,
+		Value:          valueBytes,
 		Timestamp:      time.Now(),
 	}
 }

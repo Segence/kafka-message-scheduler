@@ -198,6 +198,12 @@ func (k EventHandler) produceTargetMessage(msg kafka.Schedule) error {
 		headers = append(headers, msg.Headers...)
 	}
 
+	var originalKey []byte
+
+	if !msg.UseConfluentSchemaRegistry() {
+		originalKey = msg.Key
+	}
+
 	headers = append(
 		headers,
 		confluent.Header{
@@ -206,7 +212,7 @@ func (k EventHandler) produceTargetMessage(msg kafka.Schedule) error {
 		},
 		confluent.Header{
 			Key:   OriginalKey,
-			Value: msg.Key,
+			Value: originalKey,
 		},
 		confluent.Header{
 			Key:   OriginalTopic,
@@ -216,10 +222,45 @@ func (k EventHandler) produceTargetMessage(msg kafka.Schedule) error {
 
 	targetTopic := msg.TargetTopic()
 
+	messageKey := msg.TargetKey()
+	messageValue := msg.Value
+
+	if msg.UseConfluentSchemaRegistry() {
+		schemaID, keyPayload, err := DeserializeUsingPayloadPrefix(msg.Key)
+
+		if err != nil {
+			return err
+		}
+
+		serializedTargetKey, err := SerializeUsingPayloadPrefix(schemaID, keyPayload)
+
+		if err != nil {
+			return err
+		}
+
+		messageKey = serializedTargetKey
+	}
+
+	if msg.UseConfluentSchemaRegistry() {
+		schemaID, keyPayload, err := DeserializeUsingPayloadPrefix(messageValue)
+
+		if err != nil {
+			return err
+		}
+
+		serializedTargetKey, err := SerializeUsingPayloadPrefix(schemaID, keyPayload)
+
+		if err != nil {
+			return err
+		}
+
+		messageValue = serializedTargetKey
+	}
+
 	targetMsg := confluent.Message{
 		TopicPartition: confluent.TopicPartition{Topic: &targetTopic, Partition: confluent.PartitionAny},
-		Key:            msg.TargetKey(),
-		Value:          msg.Value,
+		Key:            messageKey,
+		Value:          messageValue,
 		Headers:        headers,
 	}
 
