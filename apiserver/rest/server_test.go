@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"net/url"
 	"testing"
 	"time"
 
@@ -44,10 +43,9 @@ func TestServer_info(t *testing.T) {
 		Address       []string `json:"address"`
 		ServerAddress string   `json:"server_address"`
 		Kafka         struct {
-			BootstrapServers  string   `json:"bootstrap_servers"`
-			SchemaRegistryURL *url.URL `json:"schema_registry_url"`
-			Topics            []string `json:"topics"`
-			HistoryTopic      string   `json:"history_topic"`
+			BootstrapServers string   `json:"bootstrap_servers"`
+			Topics           []string `json:"topics"`
+			HistoryTopic     string   `json:"history_topic"`
 		} `json:"kafka"`
 	}
 
@@ -70,9 +68,6 @@ func TestServer_info(t *testing.T) {
 	}
 	if v := obj.Kafka.BootstrapServers; v != config.BootstrapServers() {
 		t.Errorf("unexpected kafka bootstrap servers: %v", v)
-	}
-	if v := obj.Kafka.SchemaRegistryURL; v != config.SchemaRegistryURL() {
-		t.Errorf("unexpected schema registry url: %v", v)
 	}
 	if v := obj.Kafka.Topics; len(v) > 0 && v[0] != "schedules" {
 		t.Errorf("unexpected kafka topics: %v", v)

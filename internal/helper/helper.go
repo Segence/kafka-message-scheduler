@@ -23,13 +23,3 @@ func GetDefaultBootstrapServers() string {
 	fmt.Println("kafka bootstrap servers=localhost:9092")
 	return "localhost:9092"
 }
-
-// Get the Schema Registry URL that is different based on whether running inside or outside a Docker container
-func GetSchemaRegistryURL() string {
-	if IsRunningInDocker() {
-		fmt.Println("schema registry url=http://schema-registry:8081")
-		return "http://schema-registry:8081"
-	}
-	fmt.Println("schema registry url=http://localhost:8081")
-	return "http://localhost:8081"
-}
