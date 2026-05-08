@@ -24,7 +24,7 @@ var (
 	consumeMessages       = test.ConsumeMessages
 	assertMessagesInTopic = test.AssertMessagesinTopic
 	getBootstrapServers   = helper.GetDefaultBootstrapServers
-	getSchemaRegistryURL  = helper.GetSchemaRegistryURL
+	isRunningInDocker     = helper.IsRunningInDocker()
 	testTopicNames        = []string{"schedules", "history", "target"}
 )
 
@@ -140,11 +140,16 @@ func TestDefaultKafkaRunnerWithSchemaRegistry(t *testing.T) {
 	targetTopic := topics[2]
 
 	os.Setenv("BOOTSTRAP_SERVERS", getBootstrapServers())
-	os.Setenv("SCHEMA_REGISTRY_URL", getSchemaRegistryURL())
 	os.Setenv("SCHEDULES_TOPICS", schedulesTopic)
 	os.Setenv("HISTORY_TOPIC", historyTopic)
 
-	schemaRegistryClient, err := schemaregistry.NewClient(schemaregistry.NewConfig(getSchemaRegistryURL()))
+	schemaRegistryURL := "http://localhost:8081"
+
+	if helper.IsRunningInDocker() {
+		schemaRegistryURL = "http://schema-registry:8081"
+	}
+
+	schemaRegistryClient, err := schemaregistry.NewClient(schemaregistry.NewConfig(schemaRegistryURL))
 
 	if err != nil {
 		t.Fatalf("failed to create schema registry client: %v", err)
