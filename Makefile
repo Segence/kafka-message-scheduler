@@ -37,7 +37,7 @@ lints:
 	cd clientlib && $(MAKE) lint -f ../Makefile
 
 test:
-	go test -modfile=go_test.mod -v -tags musl -failfast -race -count=1 ./... -coverprofile=./coverage/coverage.txt -covermode=atomic
+	go test -modfile=go_test.mod -v -tags musl -failfast -race -count=1 ./...
 
 tests: builds lints
 	$(MAKE) test

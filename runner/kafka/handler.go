@@ -195,7 +195,7 @@ func (k EventHandler) produceTargetMessage(msg kafka.Schedule) error {
 	var headers []confluent.Header
 
 	if len(msg.Headers) != 0 {
-		headers = append(headers, msg.Headers...)
+		headers = append(headers, msg.Headers...) // FIXME remove append
 	}
 
 	headers = append(
@@ -220,35 +220,43 @@ func (k EventHandler) produceTargetMessage(msg kafka.Schedule) error {
 	messageValue := msg.Value
 
 	if msg.UseConfluentSchemaRegistry() {
-		schemaID, keyPayload, err := DeserializeUsingPayloadPrefix(msg.Key)
+		schemaID, keyPayload, schemaIDInHeader, err := DeserializeGenericSchema(msg.Key, true, msg.Headers)
 
 		if err != nil {
 			return err
 		}
 
-		serializedTargetKey, err := SerializeUsingPayloadPrefix(schemaID, keyPayload)
+		serializedTargetKey, maybeHeader, err := SerializeGenericSchema(schemaID, keyPayload, schemaIDInHeader, true)
 
 		if err != nil {
 			return err
 		}
 
 		messageKey = serializedTargetKey
+
+		if maybeHeader != nil {
+			headers = append(headers, *maybeHeader)
+		}
 	}
 
 	if msg.UseConfluentSchemaRegistry() {
-		schemaID, keyPayload, err := DeserializeUsingPayloadPrefix(messageValue)
+		schemaID, keyPayload, schemaIDInHeader, err := DeserializeGenericSchema(messageValue, false, msg.Headers)
 
 		if err != nil {
 			return err
 		}
 
-		serializedTargetKey, err := SerializeUsingPayloadPrefix(schemaID, keyPayload)
+		serializedTargetValue, maybeHeader, err := SerializeGenericSchema(schemaID, keyPayload, schemaIDInHeader, false)
 
 		if err != nil {
 			return err
 		}
 
-		messageValue = serializedTargetKey
+		messageValue = serializedTargetValue
+
+		if maybeHeader != nil {
+			headers = append(headers, *maybeHeader)
+		}
 	}
 
 	targetMsg := confluent.Message{
