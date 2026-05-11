@@ -243,7 +243,7 @@ loop:
 // Rule #4: DeleteSchedules should be triggered when needed (i.e when partitions are reassigned in kafka store)
 func TestStore_delete_func(t *testing.T) {
 	// create 1 topic with 2 partitions
-	topics := createTopics(t, 1, []int{2}, "scheduler")
+	topics := createTopics(t, 1, []int{2}, []string{"scheduler"})
 
 	// First store will be assigned to the existing two partitions of the topics
 	// Then we create a second store and it will be assigned to one of the two partitions

@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -11,10 +12,13 @@ import (
 )
 
 const (
-	Epoch       = "scheduler-epoch"
-	TargetTopic = "scheduler-target-topic"
-	TargetKey   = "scheduler-target-key"
+	Epoch                      = "scheduler-epoch"
+	TargetTopic                = "scheduler-target-topic"
+	TargetKey                  = "scheduler-target-key"
+	UseConfluentSchemaRegistry = "scheduler-use-confluent-schema-registry"
 )
+
+var useConfluentSchemaRegistryTrueValue = []byte("true")
 
 type Schedule struct {
 	*confluent.Message
@@ -39,6 +43,10 @@ func (s Schedule) Topic() string {
 
 func (s Schedule) TargetKey() []byte {
 	return s.getHeaderValue(TargetKey)
+}
+
+func (s Schedule) UseConfluentSchemaRegistry() bool {
+	return bytes.Equal(useConfluentSchemaRegistryTrueValue, s.getHeaderValue(UseConfluentSchemaRegistry))
 }
 
 func (s Schedule) ID() string {

@@ -192,10 +192,10 @@ type HandlerOpaque struct {
 }
 
 func (k EventHandler) produceTargetMessage(msg kafka.Schedule) error {
-	headers := []confluent.Header{}
+	var headers []confluent.Header
 
 	if len(msg.Headers) != 0 {
-		headers = append(headers, msg.Headers...)
+		headers = append(headers, msg.Headers...) // FIXME remove append
 	}
 
 	headers = append(
@@ -216,10 +216,53 @@ func (k EventHandler) produceTargetMessage(msg kafka.Schedule) error {
 
 	targetTopic := msg.TargetTopic()
 
+	messageKey := msg.TargetKey()
+	messageValue := msg.Value
+
+	if msg.UseConfluentSchemaRegistry() {
+		schemaID, keyPayload, schemaIDInHeader, err := DeserializeGenericSchema(msg.Key, true, msg.Headers)
+
+		if err != nil {
+			return err
+		}
+
+		serializedTargetKey, maybeHeader, err := SerializeGenericSchema(schemaID, keyPayload, schemaIDInHeader, true)
+
+		if err != nil {
+			return err
+		}
+
+		messageKey = serializedTargetKey
+
+		if maybeHeader != nil {
+			headers = append(headers, *maybeHeader)
+		}
+	}
+
+	if msg.UseConfluentSchemaRegistry() {
+		schemaID, keyPayload, schemaIDInHeader, err := DeserializeGenericSchema(messageValue, false, msg.Headers)
+
+		if err != nil {
+			return err
+		}
+
+		serializedTargetValue, maybeHeader, err := SerializeGenericSchema(schemaID, keyPayload, schemaIDInHeader, false)
+
+		if err != nil {
+			return err
+		}
+
+		messageValue = serializedTargetValue
+
+		if maybeHeader != nil {
+			headers = append(headers, *maybeHeader)
+		}
+	}
+
 	targetMsg := confluent.Message{
 		TopicPartition: confluent.TopicPartition{Topic: &targetTopic, Partition: confluent.PartitionAny},
-		Key:            msg.TargetKey(),
-		Value:          msg.Value,
+		Key:            messageKey,
+		Value:          messageValue,
 		Headers:        headers,
 	}
 
