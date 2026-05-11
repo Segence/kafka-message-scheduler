@@ -1,6 +1,5 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/etf1/kafka-message-scheduler.svg)](https://pkg.go.dev/github.com/etf1/kafka-message-scheduler) [![Go Report Card](https://goreportcard.com/badge/github.com/etf1/kafka-message-scheduler)](https://goreportcard.com/report/github.com/etf1/kafka-message-scheduler)
 
-
 # Kafka message scheduler
 
 Kafka message scheduler allows you to send message to a target topic on a specific time with a particular payload.
@@ -22,11 +21,13 @@ A lot of use cases can be found... it depends on your imagination ;)
 
 # How does it work ?
 
-Kafka message scheduler is simply using kafka topics. These topics contains all the schedules to trigger. These messages are regular kafka messages with headers and a payload. But it should contains specific headers:
+Kafka message scheduler is simply using Kafka topics. These topics contain all the schedules to trigger.
+These messages are regular kafka messages with headers and a payload. But it should contain specific headers:
 
 * scheduler-epoch: the date of the schedule in epoch (number of second since 1970)
 * scheduler-target-topic: the topic to send the message to
 * scheduler-target-key: the key to use when sending the triggered schedule to the target topic
+* scheduler-use-confluent-schema-registry: whether the messages in the topic are backed by [Confluent Schema Registry](https://docs.confluent.io/platform/current/schema-registry)
 
 That is all you need, the payload will be the one defined in the schedule message.
 Warning: if the payload of the message changes, a new schedule message should be send to the scheduler topic.
@@ -39,6 +40,7 @@ Headers:
     scheduler-epoch: 1893456000
     scheduler-target-topic: online-videos
     scheduler-target-key: vid1
+    scheduler-use-confluent-schema-registry: true
     customer-header: dummy
 Timestamp: 1607918336
 Key: vid1-online
@@ -51,6 +53,7 @@ Headers:
     scheduler-timestamp: 1607918336 # original message timestamp
     scheduler-key: vid1-online
     scheduler-topic: schedules
+    scheduler-use-confluent-schema-registry: true
     customer-header: dummy
 Key: vid1
 Value: "video 1"
