@@ -17,8 +17,8 @@ func IsRunningInDocker() bool {
 // Get the bootstrap servers because in or out the docker the kafka server is different
 func GetDefaultBootstrapServers() string {
 	if IsRunningInDocker() {
-		fmt.Println("kafka bootstrap servers=kafka:29092")
-		return "kafka:29092"
+		fmt.Println("kafka bootstrap servers=broker:29092")
+		return "broker:29092"
 	}
 	fmt.Println("kafka bootstrap servers=localhost:9092")
 	return "localhost:9092"

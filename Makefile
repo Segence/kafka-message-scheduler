@@ -3,7 +3,7 @@ LDFLAGS=-ldflags "-X main.version=${VERSION}"
 TMPDIR := $(shell mktemp -d)
 
 dev.up:
-	docker-compose -p dev up -d kafka
+	docker-compose -p dev up -d broker schema-registry kafka-ui
 
 dev.down:
 	docker-compose -p dev down -v
@@ -37,7 +37,7 @@ lints:
 	cd clientlib && $(MAKE) lint -f ../Makefile
 
 test:
-	go test -v -tags musl -failfast -race -count=1 ./... -coverprofile=./coverage/coverage.txt -covermode=atomic
+	go test -modfile=go_test.mod -v -tags musl -failfast -race -count=1 ./...
 
 tests: builds lints
 	$(MAKE) test

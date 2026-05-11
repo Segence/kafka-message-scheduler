@@ -9,6 +9,7 @@ import (
 	"time"
 
 	confluent "github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	hmapcoll "github.com/etf1/kafka-message-scheduler/internal/collector/hmap"
 	"github.com/etf1/kafka-message-scheduler/internal/helper"
 	"github.com/etf1/kafka-message-scheduler/internal/test"
@@ -17,11 +18,14 @@ import (
 
 var (
 	fullMessage           = test.FullMessage
+	fullAvroMessage       = test.FullAvroMessage
 	produceMessages       = test.ProduceMessages
 	createTopics          = test.CreateTopics
 	consumeMessages       = test.ConsumeMessages
-	assertMessagesInTopic = test.AssertMessagesinTopic
+	assertMessagesInTopic = test.AssertMessagesInTopic
 	getBootstrapServers   = helper.GetDefaultBootstrapServers
+	isRunningInDocker     = helper.IsRunningInDocker()
+	testTopicNames        = []string{"schedules", "history", "target"}
 )
 
 type tuple struct {
@@ -54,7 +58,7 @@ func checkMessagesInTopic(t *testing.T, topic string, expected []tuple) {
 
 // Check the scheduler is working as expected, tombstone, history and target message should be published
 func TestDefaultKafkaRunner(t *testing.T) {
-	topics := createTopics(t, 3, []int{2, 1, 1}, "scheduler")
+	topics := createTopics(t, 3, []int{2, 1, 1}, testTopicNames)
 
 	someValue := []byte("some value")
 	targetKey := "target-key"
@@ -109,13 +113,104 @@ func TestDefaultKafkaRunner(t *testing.T) {
 	checkMessagesInTopic(t, schedulesTopic, expectedSchedules)
 }
 
+type TestKey struct {
+	SomeKey int64
+}
+
+type TestMessage struct {
+	SomeDouble float64
+	SomeTxt    string
+}
+
+// Check the scheduler is working as expected using Avro messages, tombstone, history and target message should be published
+func TestDefaultKafkaRunnerWithSchemaRegistry(t *testing.T) {
+	topics := createTopics(t, 3, []int{2, 1, 1}, testTopicNames)
+
+	scheduleKey := TestKey{10}
+	someValue := TestMessage{1.22, "some value"}
+
+	scheduleKey2 := TestKey{20}
+	someValue2 := TestMessage{4.55, "some value 2"}
+
+	// scheduler topic
+	schedulesTopic := topics[0]
+	// history topic for audit
+	historyTopic := topics[1]
+	// the topic where the message should be delivered
+	targetTopic := topics[2]
+
+	os.Setenv("BOOTSTRAP_SERVERS", getBootstrapServers())
+	os.Setenv("SCHEDULES_TOPICS", schedulesTopic)
+	os.Setenv("HISTORY_TOPIC", historyTopic)
+
+	schemaRegistryURL := "http://localhost:8081"
+
+	if isRunningInDocker {
+		schemaRegistryURL = "http://schema-registry:8081"
+	}
+
+	schemaRegistryClient, err := schemaregistry.NewClient(schemaregistry.NewConfig(schemaRegistryURL))
+
+	if err != nil {
+		t.Fatalf("failed to create schema registry client: %v", err)
+	}
+
+	kafkaRunner := kafka.NewRunner(kafka.DefaultConfig(), kafka.DefaultSince(), hmapcoll.New())
+	defer kafkaRunner.Close()
+
+	go func() {
+		if err := kafkaRunner.Start(); err != nil {
+			log.Printf("failed to create the default kafka runner: %v", err)
+		}
+	}()
+
+	time.Sleep(30 * time.Second)
+
+	epoch := time.Now().Add(10 * time.Second).Unix()
+	msg1 := fullAvroMessage(schedulesTopic, scheduleKey, someValue, epoch, targetTopic, schemaRegistryClient)
+	// message with nil target key should work
+	msg2 := fullAvroMessage(schedulesTopic, scheduleKey2, someValue2, epoch, targetTopic, schemaRegistryClient)
+	msgs := []*confluent.Message{msg1, msg2}
+
+	produceMessages(t, msgs)
+	assertMessagesInTopic(t, schedulesTopic, msgs)
+
+	expectedMsg := []tuple{}
+	for _, msg := range msgs {
+		expectedMsg = append(expectedMsg, tuple{
+			Key:   msg.Key,
+			Value: msg.Value,
+		})
+	}
+
+	t.Logf("check message in target topic")
+	// check messages are in the target topic
+	checkMessagesInTopic(t, targetTopic, expectedMsg)
+
+	t.Logf("check message in history topic")
+	// check messages are in the history topic
+	checkMessagesInTopic(t, historyTopic, expectedMsg)
+
+	tombstoneMessagesInSchedules := []tuple{}
+	for _, msg := range msgs {
+		tombstoneMessagesInSchedules = append(tombstoneMessagesInSchedules, tuple{
+			Key:   msg.Key,
+			Value: nil,
+		})
+	}
+
+	t.Logf("check message in schedules topic")
+	// check message and tombstone message are in schedules topic
+	checkMessagesInTopic(t, schedulesTopic, append(expectedMsg, tombstoneMessagesInSchedules...))
+}
+
 // Test the relience of the multi-instance scheduler,
 // We start two schedulers which will be assigned to separate partitions
 // then we stop and start each scheduler time to time.
 // We should get in the target topic the exact number of schedules planned.
 // Each scheduler should recover and not produce less or more messages than planned schedules originally.
 func TestDefaultKafkaRunner_resilience(t *testing.T) {
-	topics := createTopics(t, 3, []int{3, 1, 1}, "scheduler")
+	topics := createTopics(t, 3, []int{3, 1, 1}, testTopicNames)
 
 	// scheduler topic with 3 partitions
 	schedulesTopic := topics[0]
@@ -208,7 +303,7 @@ loop:
 
 // Make sure scheduler configured with a yaml file runs correctly
 func TestDefaultKafkaRunner_yaml_configuration(t *testing.T) {
-	topics := createTopics(t, 3, []int{2, 1, 1}, "scheduler")
+	topics := createTopics(t, 3, []int{2, 1, 1}, testTopicNames)
 
 	someValue := []byte("some value")
 	targetKey := "target-key"
@@ -261,7 +356,7 @@ func TestDefaultKafkaRunner_yaml_configuration(t *testing.T) {
 // Issue #30: https://github.com/etf1/kafka-message-scheduler/issues/30
 // make sure invalid schedules are deleted from the topic
 func TestDefaultKafkaRunner_issue30(t *testing.T) {
-	topics := createTopics(t, 3, []int{2, 1, 1}, "scheduler")
+	topics := createTopics(t, 3, []int{2, 1, 1}, testTopicNames)
 
 	someValue := []byte("some value")
 	targetKey := "target-key"
@@ -357,7 +452,7 @@ func TestDefaultKafkaRunner_issue31(t *testing.T) {
 
 	for i, c := range cases {
 		t.Run(fmt.Sprintf("case #%v", i), func(t *testing.T) {
-			topics := createTopics(t, 3, []int{2, 1, 1}, "scheduler")
+			topics := createTopics(t, 3, []int{2, 1, 1}, testTopicNames)
 
 			// scheduler topic
 			schedulesTopic := topics[0]
