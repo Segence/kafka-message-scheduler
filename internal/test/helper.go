@@ -31,7 +31,7 @@ const (
 
 func NewKafkaStore(t *testing.T, nbTopic int, nbPartitions []int) (store *kafka_store.Store, topics []string) {
 
-	var prefixes []string
+	prefixes := make([]string, nbTopic)
 
 	for i := range nbTopic {
 		prefixes[i] = "scheduler"

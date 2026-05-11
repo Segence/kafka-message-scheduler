@@ -28,7 +28,7 @@ func schemaIdFromBytes(bytes []byte) (SchemaID, uint8, error) {
 	version := bytes[0]
 
 	if version == magicByteV0 {
-		if len(bytes) < 7 {
+		if len(bytes) < 6 {
 			return SchemaID{}, 0, fmt.Errorf("invalid schema id length %d", len(bytes))
 		}
 		schemaID := binary.BigEndian.Uint32(bytes[1:5])
