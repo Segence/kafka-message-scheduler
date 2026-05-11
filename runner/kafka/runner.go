@@ -25,6 +25,7 @@ type Config struct {
 	SessionTimeout        int
 	SchedulesTopics       []string
 	ScheduleGraceInterval uint
+	SchedulingInterval    int
 }
 
 func (c Config) String() string {
@@ -37,6 +38,8 @@ func (c Config) String() string {
 	sb.WriteString(fmt.Sprintf("sessionTimeout=%v", c.SessionTimeout))
 	sb.WriteString(" ")
 	sb.WriteString(fmt.Sprintf("schedulesTopics=%v", c.SchedulesTopics))
+	sb.WriteString(" ")
+	sb.WriteString(fmt.Sprintf("schedulingInterval=%v", c.SchedulingInterval))
 
 	return sb.String()
 }
@@ -62,6 +65,7 @@ func DefaultConfig() Config {
 		SessionTimeout:        config.SessionTimeout(),
 		HistoryTopic:          config.HistoryTopic(),
 		ScheduleGraceInterval: uint(config.ScheduleGraceInterval()),
+		SchedulingInterval:    config.SchedulingInterval(),
 	}
 }
 
@@ -116,7 +120,7 @@ func (r *Runner) Start() error {
 		return fmt.Errorf("kafka bootstrap servers unset, check variable environment ${BOOTSTRAP_SERVERS}")
 	}
 	if r.since.After(time.Now()) {
-		return fmt.Errorf("since cannot be after current day, check since parameter should be <= 0")
+		return fmt.Errorf("since cannot be after current time, check since parameter should be <= 0")
 	}
 
 	// If collector contains a Close function, call it
@@ -133,7 +137,7 @@ func (r *Runner) Start() error {
 	log.Printf("config: %v", r.config)
 	log.Printf("handler: %v", handler)
 
-	store, err := kafka.NewStore(configFile.GenerateConsumerConfiguration(), r.config.BootstrapServers, r.config.SchedulesTopics, r.config.GroupID, r.config.SessionTimeout)
+	store, err := kafka.NewStore(configFile.GenerateConsumerConfiguration(), r.config.BootstrapServers, r.config.SchedulesTopics, r.config.GroupID, r.config.SessionTimeout, r.config.SchedulingInterval)
 	if err != nil {
 		return err
 	}

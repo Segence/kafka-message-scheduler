@@ -5,34 +5,54 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/etf1/kafka-message-scheduler/config"
 	log "github.com/sirupsen/logrus"
 )
 
 type resetTicker struct {
-	stopChan  chan bool
-	resetChan chan bool
+	stopChan           chan bool
+	resetChan          chan bool
+	schedulingInterval int
 }
 
-func newResetTicker() resetTicker {
+func newResetTicker(schedulingInterval int) resetTicker {
 	return resetTicker{
-		stopChan:  make(chan bool),
-		resetChan: make(chan bool),
+		stopChan:           make(chan bool),
+		resetChan:          make(chan bool),
+		schedulingInterval: schedulingInterval,
 	}
 }
 
 func (r resetTicker) start() {
-	startOfNextDay := func() time.Time {
-		day := time.Now().AddDate(0, 0, 1)
-		return time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location())
+	schedulingInterval := func() time.Time {
+
+		var nextPointInTime time.Time
+
+		switch r.schedulingInterval {
+		case config.ScheduleEveryDayAtMidnight:
+			nextPointInTime = time.Now().AddDate(0, 0, 1)
+		case config.ScheduleEveryHour:
+			nextPointInTime = time.Now().Add(time.Hour)
+		case config.ScheduleEvery15Minutes:
+			nextPointInTime = time.Now().Add(15 * time.Minute)
+		case config.ScheduleEvery5Minutes:
+			nextPointInTime = time.Now().Add(5 * time.Minute)
+		case config.ScheduleEveryMinute:
+			nextPointInTime = time.Now().Add(time.Minute)
+		}
+
+		return time.Date(nextPointInTime.Year(), nextPointInTime.Month(),
+			nextPointInTime.Day(), nextPointInTime.Hour(), nextPointInTime.Minute(),
+			0, 0, nextPointInTime.Location())
 	}
 
-	ticker := time.NewTimer(time.Until(startOfNextDay()))
+	ticker := time.NewTimer(time.Until(schedulingInterval()))
 	defer ticker.Stop()
 
 	go func() {
 		defer log.Println("closing reset ticker ...")
 		for {
-			ticker.Reset(time.Until(startOfNextDay()))
+			ticker.Reset(time.Until(schedulingInterval()))
 			select {
 			case <-r.stopChan:
 				return

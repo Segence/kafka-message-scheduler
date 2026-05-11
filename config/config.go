@@ -11,6 +11,15 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	_ = iota
+	ScheduleEveryDayAtMidnight
+	ScheduleEveryHour
+	ScheduleEvery15Minutes
+	ScheduleEvery5Minutes
+	ScheduleEveryMinute
+)
+
 type File struct {
 	// NOTE:  Configuration for producer and consumer are kept separate so that librdkafka does not
 	// log warnings due to unrecognized options for a producer or consumer.  However, some settings
@@ -103,6 +112,20 @@ func ServerAddr() string {
 
 func BootstrapServers() string {
 	return getString("BOOTSTRAP_SERVERS", "localhost:9092")
+}
+
+func SchedulingInterval() int {
+	switch getString("BOOTSTRAP_SERVERS", "EVERY_DAY_AT_MIDNIGHT") {
+	case "EVERY_HOUR":
+		return ScheduleEveryHour
+	case "EVERY_15_MINUTES":
+		return ScheduleEvery15Minutes
+	case "EVERY_5_MINUTES":
+		return ScheduleEvery5Minutes
+	case "EVERY_MINUTE":
+		return ScheduleEveryMinute
+	}
+	return ScheduleEveryDayAtMidnight
 }
 
 func GroupID() string {

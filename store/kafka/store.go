@@ -38,7 +38,7 @@ type Store struct {
 	pollTimeoutMs int
 }
 
-func NewStore(kafkaConfiguration kafka.ConfigMap, bootstrapServers string, topics []string, groupID string, sessionTimeout int) (*Store, error) {
+func NewStore(kafkaConfiguration kafka.ConfigMap, bootstrapServers string, topics []string, groupID string, sessionTimeout, schedulingInterval int) (*Store, error) {
 	finalCfg := make(kafka.ConfigMap, len(kafkaConfiguration))
 	finalCfg["broker.address.family"] = "v4" // allow the user to override this in the configuration file
 	for k, v := range kafkaConfiguration {
@@ -57,7 +57,7 @@ func NewStore(kafkaConfiguration kafka.ConfigMap, bootstrapServers string, topic
 		return nil, fmt.Errorf("cannot create kafka consumer for the store: %w", err)
 	}
 
-	resetTicker := newResetTicker()
+	resetTicker := newResetTicker(schedulingInterval)
 
 	s := Store{
 		Consumer:      consumer,
