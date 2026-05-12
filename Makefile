@@ -19,6 +19,13 @@ builds:
 bin:
 	go build ${LDFLAGS} -tags musl -v -o bin/scheduler ./cmd/kafka
 
+.PHONY: build2 # Runs build
+build2:
+	@docker buildx build --platform linux/amd64,linux/arm64 --load \
+	--tag segence/kafka-message-scheduler:${VERSION} \
+	--build-arg VERSION=$(VERSION) \
+	--target local-build
+
 .PHONY: mock
 mini:
 	go build ${LDFLAGS} -tags musl -v -o bin/mini ./cmd/mini
