@@ -23,8 +23,7 @@ bin:
 build2:
 	@docker buildx build --platform linux/amd64,linux/arm64 --load \
 	--tag segence/kafka-message-scheduler:${VERSION} \
-	--build-arg VERSION=$(VERSION) \
-	--target local-build
+	--build-arg VERSION=$(VERSION) .
 
 .PHONY: mock
 mini:
