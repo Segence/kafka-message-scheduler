@@ -16,6 +16,7 @@ import (
 	confluent "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde"
+	"github.com/etf1/kafka-message-scheduler/config"
 	"github.com/etf1/kafka-message-scheduler/internal/helper"
 	"github.com/etf1/kafka-message-scheduler/schedule/kafka"
 	kafka_store "github.com/etf1/kafka-message-scheduler/store/kafka"
@@ -43,7 +44,7 @@ func NewKafkaStore(t *testing.T, nbTopic int, nbPartitions []int) (store *kafka_
 
 func NewKafkaStoreFromTopics(t *testing.T, topics []string) *kafka_store.Store {
 	sessionTimeout := 6000
-	store, err := kafka_store.NewStore(nil, helper.GetDefaultBootstrapServers(), topics, "scheduler-cg", sessionTimeout)
+	store, err := kafka_store.NewStore(nil, helper.GetDefaultBootstrapServers(), topics, "scheduler-cg", sessionTimeout, config.ScheduleEveryDayAtMidnight)
 	if err != nil {
 		t.Fatalf("failed to create kafka store: %v\n", err)
 	}

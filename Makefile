@@ -1,4 +1,4 @@
-VERSION ?= $(shell git describe --always --abbrev=1 --tags --match "v[0-9]*")
+VERSION := $(shell git describe --tags --match 'v[0-9]*' --abbrev=0 | cut -c2-)
 LDFLAGS=-ldflags "-X main.version=${VERSION}"
 TMPDIR := $(shell mktemp -d)
 
@@ -18,6 +18,12 @@ builds:
 .PHONY: bin
 bin:
 	go build ${LDFLAGS} -tags musl -v -o bin/scheduler ./cmd/kafka
+
+.PHONY: build2 # Runs build
+build2:
+	@docker buildx build --platform linux/amd64,linux/arm64 --load \
+	--tag segence/kafka-message-scheduler:${VERSION} \
+	--build-arg VERSION=$(VERSION) .
 
 .PHONY: mock
 mini:
