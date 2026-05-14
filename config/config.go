@@ -115,7 +115,7 @@ func BootstrapServers() string {
 }
 
 func SchedulingInterval() int {
-	switch getString("BOOTSTRAP_SERVERS", "EVERY_DAY_AT_MIDNIGHT") {
+	switch getString("SCHEDULING_INTERVAL", "EVERY_DAY_AT_MIDNIGHT") {
 	case "EVERY_HOUR":
 		return ScheduleEveryHour
 	case "EVERY_15_MINUTES":
